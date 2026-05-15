@@ -28,9 +28,9 @@ export function useChessEngine() {
   const [settings, setSettings] = useState({
     showArrows: true,
     showBadges: true,
-    showCoach: true,
     analysisTime: 20,
-    enginePath: '/stockfish-18-lite-single.js'
+    enginePath: '/stockfish-18-lite-single.js',
+    flipped: false
   });
 
   const updateSetting = (key, val) => {
@@ -53,6 +53,7 @@ export function useChessEngine() {
   const analEval = useRef(0);
   const analMove = useRef('');
   const analPv = useRef([]);
+  const analLines = useRef(new Map());
   const analMode = useRef('live');
   const abortAnalysis = useRef(false);
 
@@ -69,23 +70,42 @@ export function useChessEngine() {
 
       // Batch Analysis Mode
       if (analMode.current === 'batch') {
-        if (data.includes('score cp')) {
-          const m = data.match(/score cp (-?\d+)/);
-          if (m) analEval.current = parseInt(m[1], 10);
-        } else if (data.includes('score mate')) {
-          const m = data.match(/score mate (-?\d+)/);
-          if (m) analEval.current = parseInt(m[1], 10) > 0 ? 9999 : -9999;
+        if (!data.startsWith('info ') && !data.startsWith('bestmove')) return;
+
+        if (data.startsWith('info ')) {
+          const multipvMatch = data.match(/ multipv (\d+)/);
+          const multipv = multipvMatch ? parseInt(multipvMatch[1], 10) : 1;
+          const cpMatch = data.match(/ score cp (-?\d+)/);
+          const mateMatch = data.match(/ score mate (-?\d+)/);
+          const pvMatch = data.match(/ pv (.*)/);
+
+          if ((cpMatch || mateMatch) && pvMatch) {
+            const score = cpMatch
+              ? parseInt(cpMatch[1], 10)
+              : (parseInt(mateMatch[1], 10) > 0 ? 9999 : -9999);
+            const pv = pvMatch[1].trim().split(/\s+/).filter(Boolean);
+            analLines.current.set(multipv, {
+              multipv,
+              score,
+              pv,
+              move: pv[0] || ''
+            });
+          }
         }
-        if (data.includes(' pv ')) {
-          const m = data.match(/ pv (.*)/);
-          if (m) analPv.current = m[1].split(' ');
-        }
+
         if (data.startsWith('bestmove')) {
+          const ordered = [...analLines.current.values()].sort((a, b) => a.multipv - b.multipv);
+          const primary = ordered[0];
           const m = data.match(/bestmove (\S+)/);
-          if (m && m[1] !== '(none)' && m[1] !== '0000') analMove.current = m[1];
-          const cb = analResolve.current;
+          if (primary) {
+            analEval.current = primary.score;
+            analMove.current = primary.move || '';
+            analPv.current = primary.pv || [];
+          } else if (m && m[1] !== '(none)' && m[1] !== '0000') {
+            analMove.current = m[1];
+          }
+          analResolve.current?.(ordered);
           analResolve.current = null;
-          cb?.();
         }
         return;
       }
@@ -134,6 +154,7 @@ export function useChessEngine() {
     liveTimer.current = setTimeout(() => {
       if (!workerRef.current || analMode.current === 'batch') return;
       workerRef.current.postMessage('stop');
+      workerRef.current.postMessage('setoption name MultiPV value 1');
       workerRef.current.postMessage(`position fen ${newFen}`);
       workerRef.current.postMessage('go depth 20');
     }, 200);
@@ -160,23 +181,25 @@ export function useChessEngine() {
     analResolve.current = null;
 
     const total = hist.length + 1;
-    const evals = [], bests = [], pvs = [];
+    const evals = [], bests = [], pvs = [], positionInsights = [];
     const totalBudgetMs = totalTimeSeconds * 1000;
     const startedAt = performance.now();
 
     const analysePos = (fenStr, moveTimeMs) => new Promise((resolve) => {
       analEval.current = 0; analMove.current = ''; analPv.current = [];
+      analLines.current = new Map();
       let settled = false;
 
       const safetyId = setTimeout(() => {
-        if (!settled) { settled = true; analResolve.current = null; resolve(); }
+        if (!settled) { settled = true; analResolve.current = null; resolve([]); }
       }, moveTimeMs + 3000);
 
-      // Set resolver BEFORE posting go — fast bestmoves are never missed
-      analResolve.current = () => {
-        if (!settled) { clearTimeout(safetyId); settled = true; resolve(); }
+      // Set resolver BEFORE posting go so fast bestmoves are never missed.
+      analResolve.current = (orderedLines = []) => {
+        if (!settled) { clearTimeout(safetyId); settled = true; resolve(orderedLines); }
       };
 
+      workerRef.current.postMessage('setoption name MultiPV value 3');
       workerRef.current.postMessage(`position fen ${fenStr}`);
       workerRef.current.postMessage(`go movetime ${moveTimeMs}`);
     });
@@ -192,11 +215,16 @@ export function useChessEngine() {
       const remainingBudgetMs = Math.max(MIN_POSITION_TIME_MS, totalBudgetMs - elapsedMs);
       const moveTimeMs = Math.max(MIN_POSITION_TIME_MS, Math.floor(remainingBudgetMs / positionsLeft));
       setAnalysisFen(pf);
-      await analysePos(pf, moveTimeMs);
+      const orderedLines = await analysePos(pf, moveTimeMs);
       const c = new Chess(pf);
       evals.push(normalise(analEval.current, c.turn() === 'w'));
       bests.push(analMove.current);
       pvs.push(analPv.current);
+      positionInsights.push((orderedLines || []).map((line) => ({
+        uci: line.move || '',
+        cp: normalise(line.score, c.turn() === 'w'),
+        pv: line.pv || []
+      })));
       if (i % 3 === 0 || i === total - 1)
         setProgress(Math.round(((i + 1) / total) * 100));
     }
@@ -220,6 +248,8 @@ export function useChessEngine() {
 
       const playedUci = mv.from + mv.to + (mv.promotion || '');
       const topMoveUci = bests[i] || '';
+      const previousPositionCp = i > 0 ? evals[i - 1] : undefined;
+      const alternatives = positionInsights[i] || [];
 
       classifs.push(classifyMove(
         pf,
@@ -227,12 +257,14 @@ export function useChessEngine() {
         topMoveUci, playedUci,
         mv.color,
         i < bookLen,
-        legalMoves
+        legalMoves,
+        { previousPositionCp, alternatives }
       ));
     }
 
     setProgress(100);
     setMoveClassifs(classifs);
+    workerRef.current.postMessage('setoption name MultiPV value 1');
     analMode.current = 'live';
     setAnalysing(false); setAnalysisFen(null);
     setMoveIndex(-1);
