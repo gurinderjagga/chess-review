@@ -35,8 +35,8 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
   const stageRef = useRef(null);
   const [boardSize, setBoardSize] = useState(isMobile ? 320 : 640);
 
-  const evalBarWidth = isMobile ? 14 : 28;
-  const stageGap = isMobile ? 4 : 8;
+  const evalBarWidth = isMobile ? 22 : 36;
+  const stageGap = isMobile ? 6 : 10;
   const displayFen = variationFen ?? analysisFen ?? fen;
   const isExploring = Boolean(variationFen);
   const currentClf = moveIndex >= 0 ? moveClassifs[moveIndex] : null;
@@ -75,9 +75,9 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
     return liveEval;
   }, [liveEval, moveIndex, posEvals]);
 
-  // Clamp to ±10 pawns; mate scores map to the extremes
-  const clampedEval = currentEval >= 90 ? 10 : currentEval <= -90 ? -10 : Math.max(-10, Math.min(10, currentEval));
-  const evalPercent = ((clampedEval + 10) / 20) * 100;
+  // Clamp to ±5 pawns (total range 10); mate scores map to the extremes
+  const clampedEval = currentEval >= 90 ? 5 : currentEval <= -90 ? -5 : Math.max(-5, Math.min(5, currentEval));
+  const evalPercent = ((clampedEval + 5) / 10) * 100;
   const suggestionArrows = useMemo(() => {
     if (!settings.showArrows || analysing) return [];
 
