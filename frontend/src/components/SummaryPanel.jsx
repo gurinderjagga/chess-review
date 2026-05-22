@@ -13,7 +13,7 @@ function fenAtIndex(hist, idx) {
   return g.fen();
 }
 
-export default function SummaryPanel({ engine, isMobile }) {
+export default function SummaryPanel({ engine }) {
   const {
     moveHistory, moveIndex, analysing,
     moveClassifs, posEvals, batchPvs,

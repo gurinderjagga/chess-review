@@ -1,10 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Upload, Target, Info } from 'lucide-react';
+import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Upload, Target } from 'lucide-react';
 import { CLF } from '../../../engine/constants.js';
 import { calculateAccuracy } from '../../../engine/accuracy.js';
 import { ClassificationIcon } from './icons.jsx';
 
-export default function AnalysisPanel({ engine, isMobile }) {
+export default function AnalysisPanel({ engine }) {
   const {
     moveHistory, moveIndex, analysing, progress,
     moveClassifs, posEvals,
@@ -54,7 +54,7 @@ export default function AnalysisPanel({ engine, isMobile }) {
   };
 
   /* ── Nav Controls (shared, always locked at bottom) ─────────────── */
-  const NavControls = () => (
+  const renderNavControls = () => (
     <div style={{ padding: '10px 14px 12px', borderTop: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.12)', flexShrink: 0 }}>
       <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
         {[
@@ -107,13 +107,13 @@ export default function AnalysisPanel({ engine, isMobile }) {
             <Play size={18} fill="currentColor" /> Start Engine Review
           </button>
         </div>
-        <NavControls />
+        {renderNavControls()}
       </div>
     );
   }
 
   /* ── Accuracy Header ─────────────────────────────────────────────────── */
-  const AccuracyHeader = () => (
+  const renderAccuracyHeader = () => (
     <div style={{ padding: '14px 14px 10px', display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
       {/* Player Accuracy Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -172,7 +172,7 @@ export default function AnalysisPanel({ engine, isMobile }) {
     <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       {/* Accuracy Header — full top, above everything */}
-      <AccuracyHeader />
+      {renderAccuracyHeader()}
 
       {/* Tab Bar */}
       <div style={{ display: 'flex', padding: '0 10px', gap: '4px', flexShrink: 0 }}>
@@ -314,7 +314,7 @@ export default function AnalysisPanel({ engine, isMobile }) {
       )}
 
       {/* Nav controls — always locked at bottom */}
-      <NavControls />
+      {renderNavControls()}
     </div>
   );
 }

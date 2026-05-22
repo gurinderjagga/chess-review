@@ -8,8 +8,6 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Target,
-  Upload,
 } from 'lucide-react';
 import { CLF } from '../../../engine/constants.js';
 import { calculateAccuracy } from '../../../engine/accuracy.js';
@@ -89,11 +87,6 @@ export default function AnalysisPanelV2({ engine, forcedTab = 'overview' }) {
 
     return summary;
   }, [moveClassifs]);
-
-  const issueTotals = useMemo(() => ({
-    white: ['inaccuracy', 'mistake', 'miss', 'blunder'].reduce((sum, key) => sum + (stats[key]?.w || 0), 0),
-    black: ['inaccuracy', 'mistake', 'miss', 'blunder'].reduce((sum, key) => sum + (stats[key]?.b || 0), 0),
-  }), [stats]);
 
   const handleStatClick = (key, side) => {
     const indices = [];
@@ -220,7 +213,6 @@ export default function AnalysisPanelV2({ engine, forcedTab = 'overview' }) {
             moveHistory={moveHistory}
             currentClf={currentClf}
             currentClfData={currentClfData}
-            posEvals={posEvals}
             playerNames={playerNames}
           />
 
@@ -329,17 +321,7 @@ export default function AnalysisPanelV2({ engine, forcedTab = 'overview' }) {
   );
 }
 
-function ScoreCard({ side, name, accuracy, issues }) {
-  return (
-    <div className="score-card">
-      <span className="section-kicker">{side}</span>
-      <div className="score-card-name">{name}</div>
-      <div className="score-card-accuracy">{accuracy}%</div>
-    </div>
-  );
-}
-
-function CurrentMoveCard({ moveIndex, moveHistory, currentClf, currentClfData, posEvals, playerNames }) {
+function CurrentMoveCard({ moveIndex, moveHistory, currentClf, currentClfData, playerNames }) {
   if (moveIndex < 0 || !currentClfData) {
     return (
       <div className="current-move-card idle">
@@ -353,9 +335,6 @@ function CurrentMoveCard({ moveIndex, moveHistory, currentClf, currentClfData, p
   }
 
   const actor = moveIndex % 2 === 0 ? playerNames.white : playerNames.black;
-  const swing = posEvals[moveIndex] !== undefined && posEvals[moveIndex + 1] !== undefined
-    ? Math.abs((posEvals[moveIndex + 1] - posEvals[moveIndex]) / 100).toFixed(1)
-    : null;
 
   return (
     <div

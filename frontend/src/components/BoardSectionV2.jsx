@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRightLeft, BookOpen, Cpu, Settings2, Target, X } from 'lucide-react';
 import { CLF } from '../../../engine/constants.js';
-import { ClassificationIcon } from './icons.jsx';
 import ChessBoard from './ChessBoardV2.jsx';
-
-function formatOpeningName(opening) {
-  if (!opening?.name) return null;
-  return opening.name.split(':')[0].trim().replace(/Defense/g, 'Defence');
-}
+import { calculateAccuracy } from '../../../engine/accuracy.js';
 
 function formatEval(value) {
   if (value === undefined || value === null) return '--';
@@ -20,14 +14,6 @@ function formatEval(value) {
   return `${prefix}${value.toFixed(1)}`;
 }
 
-function buildMoveLabel(moveIndex, moveHistory) {
-  if (moveIndex < 0 || !moveHistory[moveIndex]) return 'Start position';
-  const turn = moveIndex % 2 === 0
-    ? `${Math.floor(moveIndex / 2) + 1}.`
-    : `${Math.floor(moveIndex / 2) + 1}...`;
-  return `${turn} ${moveHistory[moveIndex]}`;
-}
-
 export default function BoardSectionV2({ engine, isMobile = false }) {
   const {
     fen,
@@ -37,44 +23,42 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
     handleDrop,
     lastMove,
     settings,
-    updateSetting,
     moveIndex,
     moveClassifs,
-    moveHistory,
     posEvals,
     bestMoves,
     liveBestMove,
     analysing,
     playerNames,
-    opening,
-    liveLoading,
-    setVariationFen,
   } = engine;
 
   const stageRef = useRef(null);
   const [boardSize, setBoardSize] = useState(isMobile ? 320 : 640);
-  const [localFlip, setLocalFlip] = useState(false);
 
   const evalBarWidth = isMobile ? 14 : 28;
   const stageGap = isMobile ? 4 : 8;
   const displayFen = variationFen ?? analysisFen ?? fen;
   const isExploring = Boolean(variationFen);
-  const openingName = formatOpeningName(opening);
   const currentClf = moveIndex >= 0 ? moveClassifs[moveIndex] : null;
   const currentClfData = currentClf ? CLF[currentClf] : null;
-  const moveLabel = buildMoveLabel(moveIndex, moveHistory);
+
+  const accuracy = useMemo(() => calculateAccuracy(moveClassifs, posEvals), [moveClassifs, posEvals]);
 
   useEffect(() => {
     if (!stageRef.current) return;
 
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      const size = Math.floor(Math.min(
-        width - evalBarWidth - stageGap - (isMobile ? 8 : 16),
-        height - (isMobile ? 60 : 80), // allocate space for player ribbons vertically
-      ));
+      const size = Math.floor(
+        isMobile
+          ? width - evalBarWidth - stageGap - 8
+          : Math.min(
+              width - evalBarWidth - stageGap - 16,
+              height - 80 // allocate space for player ribbons vertically
+            )
+      );
       setBoardSize((prev) => {
-        const newSize = Math.max(isMobile ? 260 : 360, size);
+        const newSize = Math.max(isMobile ? 240 : 360, size);
         return Math.abs(prev - newSize) > 2 ? newSize : prev;
       });
     });
@@ -140,6 +124,11 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
 
           <div className="player-ribbon player-ribbon-top">
             <span className="player-name">{settings.flipped ? playerNames.white : playerNames.black}</span>
+            {(settings.flipped ? accuracy.white : accuracy.black) && (
+              <span className="player-accuracy-badge" style={{ marginLeft: '8px', fontSize: '0.72rem', padding: '2px 6px', borderRadius: '6px', background: 'rgba(150, 200, 95, 0.12)', color: '#96c85f', fontWeight: '800', border: '1px solid rgba(150, 200, 95, 0.25)', letterSpacing: '0.5px' }}>
+                {settings.flipped ? accuracy.white : accuracy.black}%
+              </span>
+            )}
             {!isMobile && <span className="player-caption" style={{ marginLeft: 'auto' }}>{settings.flipped ? 'White' : 'Black'}</span>}
           </div>
 
@@ -186,6 +175,11 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
 
           <div className="player-ribbon player-ribbon-bottom">
             <span className="player-name">{settings.flipped ? playerNames.black : playerNames.white}</span>
+            {(settings.flipped ? accuracy.black : accuracy.white) && (
+              <span className="player-accuracy-badge" style={{ marginLeft: '8px', fontSize: '0.72rem', padding: '2px 6px', borderRadius: '6px', background: 'rgba(150, 200, 95, 0.12)', color: '#96c85f', fontWeight: '800', border: '1px solid rgba(150, 200, 95, 0.25)', letterSpacing: '0.5px' }}>
+                {settings.flipped ? accuracy.black : accuracy.white}%
+              </span>
+            )}
             {!isMobile && <span className="player-caption" style={{ marginLeft: 'auto' }}>{settings.flipped ? 'Black' : 'White'}</span>}
           </div>
         </div>
@@ -194,17 +188,4 @@ export default function BoardSectionV2({ engine, isMobile = false }) {
   );
 }
 
-function SettingRow({ label, description, active, onClick }) {
-  return (
-    <button className="setting-row" onClick={onClick}>
-      <div>
-        <div className="setting-label">{label}</div>
-        <div className="setting-description">{description}</div>
-      </div>
 
-      <div className={`setting-toggle${active ? ' active' : ''}`}>
-        <div className="setting-toggle-thumb" />
-      </div>
-    </button>
-  );
-}

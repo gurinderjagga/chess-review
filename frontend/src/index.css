@@ -238,15 +238,6 @@ textarea:focus {
 
 /* Mobile Optimizations */
 @media (max-width: 1024px) {
-  body {
-    overflow-y: auto;
-  }
-
-  .app-container {
-    height: auto !important;
-    min-height: 100vh;
-  }
-
   main {
     padding: 8px !important;
     overflow: visible !important;
