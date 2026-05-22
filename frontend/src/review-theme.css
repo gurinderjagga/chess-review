@@ -394,20 +394,22 @@ textarea {
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-.control-chip:hover,
-.ghost-action:hover,
-.analysis-time-btn:hover,
-.panel-tab:hover,
-.move-cell:hover,
-.count-button:hover:not(:disabled),
-.setting-row:hover,
-.ghost-link:hover {
-  transform: translateY(-1px);
-}
+@media (hover: hover) {
+  .control-chip:hover,
+  .ghost-action:hover,
+  .analysis-time-btn:hover,
+  .panel-tab:hover,
+  .move-cell:hover,
+  .count-button:hover:not(:disabled),
+  .setting-row:hover,
+  .ghost-link:hover {
+    transform: translateY(-1px);
+  }
 
-.control-chip:hover {
-  border-color: rgba(129, 182, 76, 0.32);
-  background: rgba(129, 182, 76, 0.08);
+  .control-chip:hover {
+    border-color: rgba(129, 182, 76, 0.32);
+    background: rgba(129, 182, 76, 0.08);
+  }
 }
 
 .control-chip-accent,
@@ -1130,6 +1132,13 @@ textarea {
 .mobile-tab-btn.active {
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
+}
+
+@media (hover: hover) {
+  .mobile-tab-btn:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .mobile-detail-panel {
