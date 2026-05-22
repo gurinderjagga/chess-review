@@ -548,7 +548,6 @@ export default function ChessBoardV2({
                 backgroundPosition: 'center',
                 cursor: isDragged ? 'grabbing' : 'grab',
                 zIndex: isDragged ? 0 : 10,
-                filter: 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45))',
                 opacity: isDragged ? 0.22 : 1,
                 touchAction: 'none',
               }}

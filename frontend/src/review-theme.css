@@ -293,7 +293,7 @@ textarea {
 .eval-bar-text {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%) rotate(-90deg);
+  transform: translateX(-50%);
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.04em;
