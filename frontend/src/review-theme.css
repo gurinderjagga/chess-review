@@ -415,7 +415,6 @@ textarea {
 .control-chip-accent,
 .btn-primary,
 .analysis-time-btn.active,
-.mobile-tab-btn.active,
 .nav-btn-accent {
   background: linear-gradient(180deg, #96c85f 0%, #7aae43 100%);
   color: var(--accent-contrast);

@@ -251,27 +251,4 @@ textarea:focus {
     display: none !important;
   }
 
-  .mobile-tabs {
-    display: flex;
-    gap: 4px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-  }
-
-  .mobile-tab-btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-muted);
-    transition: all 0.2s;
-  }
-
-  .mobile-tab-btn.active {
-    background: var(--accent-primary);
-    color: var(--bg-main);
-  }
 }
